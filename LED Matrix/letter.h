@@ -9,8 +9,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-static uint8_t LETTERHEIGHT = 6;
-static uint8_t LETTERWIDTH = 6;
 
 // the letter struct
 // A LETTERHEIGHTxLETTERWIDTH 2D matrix
@@ -18,7 +16,9 @@ static uint8_t LETTERWIDTH = 6;
 // character.
 struct letter
 {
-    uint8_t **pixelMatrix;  
+    uint8_t **pixelMatrix;
+    uint8_t LETTERHEIGHT;
+    uint8_t LETTERWIDTH;
 };
 
 // prints the pixelMatrix member of the letter
@@ -34,4 +34,4 @@ void cleanLetter(struct letter *l);
 
 // helper function for createLetter that
 // initializes the pixelMatrix to contain all 0s
-void letter_init(struct letter* l);
+void letter_init(struct letter* l,int height, int width);

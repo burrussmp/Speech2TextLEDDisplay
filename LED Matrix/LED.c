@@ -213,6 +213,7 @@ void ledMatrix_refresh(struct screen * s)
 }
 
 // Thread function for LED screen
+// accepts a thread to a controller struct
 void start()
 {
 
@@ -232,8 +233,7 @@ int main()
     printf("Starting the program\n");
     while(1){
         advance(newScreen);
-        changeColor(newScreen,1+newScreen->color);
-        for (int i = 0; i < 5; ++i)
+        for (int i = 0; i < 10; ++i)
             ledMatrix_refresh(newScreen);
     }
 
