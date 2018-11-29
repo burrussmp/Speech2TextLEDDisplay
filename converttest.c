@@ -64,12 +64,14 @@ void control_init(struct control* cont){
 }
 
 void decode(struct control* cont){
-  cont->curDec = cont->curDec % NUM_FILES;
+  cont->curDec++;
+  cont->curDec = (cont->curDec) % NUM_FILES;
   cont->readyToDecode--;
 }
 
 void record(struct control* cont){
-  cont->curRec = cont->curRec % NUM_FILES;
+  cont->curRec++;
+  cont->curRec = (cont->curRec) % NUM_FILES;
   cont->readyToDecode++;
 }
 
@@ -114,8 +116,8 @@ void *decode_audio(void* param){
 
 
   int i = 0;
-  while (1) {
-
+  while (i < 5) {
+    i++;
     pthread_mutex_lock( &(cont->convert_mutex) ); // lock condition
 
     while(cont->readyToDecode < 1)
@@ -162,8 +164,11 @@ void *record_audio(void* param){
 
   struct control* cont  = (struct control*) param;
 
-  while(1){
+  int i = 0;
+  while(i < 5){
 
+    i++;
+    
     pthread_mutex_lock( &(cont->convert_mutex) ); // lock condition
 
     while(cont->readyToDecode < NUM_FILES)
@@ -175,7 +180,7 @@ void *record_audio(void* param){
 
     sprintf(command, "arecord -f S16_LE -r22100 -D hw:1,0 -d 2 %s", cont->files[cont->curRec]);
 
-    system("arecord -f S16_LE -r22100 -D hw:1,0 -d 2 continuous.raw");
+    system(command); // This might not work
 
     printf("Done recording");
 
