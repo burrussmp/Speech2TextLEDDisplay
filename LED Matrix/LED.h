@@ -7,6 +7,10 @@
 #include <string.h>
 #include <time.h>
 #include <dirent.h>
+#include <errno.h>
+#include <sys/time.h>
+#include <errno.h>
+
 #include "Screen.h"
 /*** GLOBAL VARIABLE ***/
 /* GPIO PATH */
@@ -46,6 +50,9 @@ static int fileDesc_a;
 static int fileDesc_b;
 static int fileDesc_c;
 
+// timer static variables
+static struct timespec wait; // declares timespec structs
+static uint64_t period_ns = 200000000; // 0.0002 s
 
 /**
  * exportAndOut
@@ -111,3 +118,8 @@ void ledMatrix_setColourBottom(int colour);
  *  Fill the LED Matrix with the respective pixel colour
  */
 void ledMatrix_refresh(struct screen * s);
+
+// timer functions
+void start_periodic_timer();
+void wait_next_activation();
+void timespec_add_ns(struct timespec *t, uint64_t delta);
