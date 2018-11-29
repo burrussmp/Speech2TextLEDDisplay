@@ -74,7 +74,7 @@ void *screen_advance(void* param){
   while(1){
       advance(cont->newScreen);
       //changeColor(newScreen,1+newScreen->color);
-      for (int i = 0; i < 10; ++i)
+      for (int i = 0; i < 2; ++i)
         ledMatrix_refresh(cont->newScreen);
   }
 
@@ -95,8 +95,10 @@ void *decode_audio(void* param){
 
   config = cmd_ln_init(NULL, ps_args(), TRUE,
              "-hmm", MODELDIR "/en-us/en-us",
-             "-lm", MODELDIR "/en-us/en-us.lm.bin",
-           "-dict", MODELDIR "/en-us/cmudict-en-us.dict",
+             //"-lm", MODELDIR "/en-us/en-us.lm.bin",
+             "-lm", MODELDIR "/en-us/newlm.lm",
+             //"-dict", MODELDIR "/en-us/cmudict-en-us.dict",
+             "-dict", MODELDIR "/en-us/newdict.dict",
                  //"-dict", MODELDIR "/en-us/dan-test.dict",
                  "-samprate", "22100",
                  "-nfft", "1024",
