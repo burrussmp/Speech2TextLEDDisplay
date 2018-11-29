@@ -206,19 +206,34 @@ void ledMatrix_refresh(struct screen * s)
         ledMatrix_latch();
         lseek(fileDesc_oe, 0, SEEK_SET);
         write(fileDesc_oe, "0", 1); 
-        struct timespec reqDelay = {DELAY_IN_SEC, DELAY_IN_US}; // sleep for delay
-    	nanosleep(&reqDelay, (struct timespec *) NULL);
+        wait_next_activation();
     }
     return;
 }
 
-// Thread function for LED screen
+void timespec_add_ns(struct timespec *t, uint64_t delta)
+{
+    t->tv_nsec += delta;
+    if (t->tv_nsec > 1000000000){ // if ns field overrun, increment sec field
+        t->tv_nsec -= 1000000000; // and appropriately adjust ns field
+        t->tv_sec++;
+    }
+}
+void wait_next_activation()
+{
+    clock_gettime(CLOCK_REALTIME, &wait); // update timespec wait to cur time
+    timespec_add_ns(&wait, period_ns); // increment timespec wait by period_ns
+    clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &wait, NULL); // sleep for period_ns
+}
+
+
+
+/*// Thread function for LED screen
 // accepts a thread to a controller struct
 void start()
 {
 
 }
-/*** MAIN ***/
 int main()
 { 
     struct screen* newScreen;
@@ -239,3 +254,4 @@ int main()
 
     return 0;
 }
+*/
