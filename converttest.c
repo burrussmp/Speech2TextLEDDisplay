@@ -15,8 +15,7 @@ struct control {
   char* files[2];
 };
 
-int flag;
-char* message;
+static int NUM_FILES = 2;
 
 void *record_audio(void* data);
 void *decode_audio(void* data);
@@ -32,10 +31,6 @@ int main(int argc, char *argv[])
 
     struct control* cont = malloc(sizeof(struct control));
     control_init(cont);
-
-    printf("%d\n", cont->curDec);
-    printf("%d\n", cont->curRec);
-    printf("%s\n", cont->files[0]);
 
     char* message1 = "Thread1";
     ret1 = pthread_create(&thread1, NULL, record_audio, (void*) cont);
@@ -63,30 +58,22 @@ void control_init(struct control* cont){
     int cond = pthread_cond_init(&cont->convert_condition, NULL);
     cont->files[0] = "buffer1.raw";
     cont->files[1] = "buffer2.raw";
-    cont->curDec = 1;
+    cont->curDec = 0;
     cont->curRec = 0;
     cont->readyToDecode = 0;
 }
 
-void *decode_audio(void* param){
-
-  struct control* cont  = (struct control*) param;
-
-  while (flag == 0){
-    usleep(10);
-  }
-
-  while (1){
-    sem_wait(&convertSem);
-    printf("****************");//%s \n", message);
-
-    sem_post(&convertSem);
-    usleep(10000);
-  }
-  return (void*)1;
+void decode(struct control* cont){
+  cont->curDec = cont->curDec % NUM_FILES;
+  cont->readyToDecode--;
 }
 
-void *record_audio(void* param){
+void record(struct control* cont){
+  cont->curRec = cont->curRec % NUM_FILES;
+  cont->readyToDecode++;
+}
+
+void *decode_audio(void* param){
 
   struct control* cont  = (struct control*) param;
 
@@ -112,49 +99,97 @@ void *record_audio(void* param){
                  "-pl_window", "10", // Greater mean less accurate
 
              NULL);
-    if (config == NULL) {
-  fprintf(stderr, "Failed to create config object, see log for details\n");
-  return -1;
+  if (config == NULL) {
+    fprintf(stderr, "Failed to create config object, see log for details\n");
+    return -1;
+  }
+
+  ps = ps_init(config);
+
+  if (ps == NULL) {
+    fprintf(stderr, "Failed to create recognizer, see log for details\n");
+    return -1;
+  }
+
+
+
+  int i = 0;
+  while (1) {
+
+    pthread_mutex_lock( &(cont->convert_mutex) ); // lock condition
+
+    while(cont->readyToDecode < 1)
+    {
+      pthread_cond_wait( &(cont->convert_condition) ,&(cont->convert_mutex) );
     }
 
-    ps = ps_init(config);
+    fh = fopen(cont->files[cont->curDec], "rb");
 
+    decode(cont);
 
-    int i = 0;
-    while (1) {
-
-        if (ps == NULL) {
-            fprintf(stderr, "Failed to create recognizer, see log for details\n");
-            return -1;
-        }
-        system("arecord -f S16_LE -r22100 -D hw:1,0 -d 2 continuous.raw");
-
-        printf("Done recording");
-
-        fflush(stdout);
-
-        fh = fopen("continuous.raw", "rb");
-        if (fh == NULL) {
+    if (fh == NULL) {
       fprintf(stderr, "Unable to open input file goforward.raw\n");
       return -1;
-        }
+    }
 
-        rv = ps_start_utt(ps);
+    rv = ps_start_utt(ps);
 
-        while (!feof(fh)) {
+    while (!feof(fh)) {
       size_t nsamp;
       nsamp = fread(buf, 2, 512, fh);
       rv = ps_process_raw(ps, buf, nsamp, FALSE, FALSE);
-        }
-
-        rv = ps_end_utt(ps);
-        hyp = ps_get_hyp(ps, &score);
-        printf("Recognized: %s\n", hyp);
-
-        fclose(fh);
-        i++;
     }
 
+    rv = ps_end_utt(ps);
+    hyp = ps_get_hyp(ps, &score);
+    printf("Recognized: %s\n", hyp);
+
+    fclose(fh);
+    i++;
+
+    // send signal to wake
+    pthread_cond_broadcast( &(cont->convert_condition) );
+    // unlock mutex
+    pthread_mutex_unlock( &(cont->convert_mutex) );
+  }
+
   cmd_ln_free_r(config);
+
+
+}
+
+void *record_audio(void* param){
+
+  struct control* cont  = (struct control*) param;
+
+  while(1){
+
+    pthread_mutex_lock( &(cont->convert_mutex) ); // lock condition
+
+    while(cont->readyToDecode < NUM_FILES)
+    {
+      pthread_cond_wait( &(cont->convert_condition) ,&(cont->convert_mutex) );
+    }
+
+    char* command;
+
+    sprintf(command, "arecord -f S16_LE -r22100 -D hw:1,0 -d 2 %s", cont->files[cont->curRec]);
+
+    system("arecord -f S16_LE -r22100 -D hw:1,0 -d 2 continuous.raw");
+
+    printf("Done recording");
+
+    fflush(stdout);
+
+    record(cont);
+
+      // send signal to wake
+    pthread_cond_broadcast( &(cont->convert_condition) );
+    // unlock mutex
+    pthread_mutex_unlock( &(cont->convert_mutex) );
+
+  }
+
+        
 
 }
