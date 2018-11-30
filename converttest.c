@@ -74,7 +74,7 @@ void *screen_advance(void* param){
   while(1){
       advance(cont->newScreen);
       //changeColor(newScreen,1+newScreen->color);
-      for (int i = 0; i < 10; ++i)
+      for (int i = 0; i < 2; ++i)
         ledMatrix_refresh(cont->newScreen);
   }
 
