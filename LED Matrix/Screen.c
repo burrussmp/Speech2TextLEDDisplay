@@ -229,7 +229,7 @@ void advance(struct screen * s)
         s->screenBuffer[36][i] = 0;
     }
     
-    updateScreen(s);
+   //updateScreen(s);
     s->advanceCounter++;
 }
 

@@ -33,7 +33,7 @@
 #define S_IWRITE "S_IWUSR"
 
 /* TIMING */
-#define DELAY_IN_US 10
+#define DELAY_IN_US 2
 #define DELAY_IN_SEC 0
 
 /* FILES HANDLER */

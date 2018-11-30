@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include "letter.h"
 // max size of the queue
-#define MAXSIZE  32
+#define MAXSIZE  128
 
 // actual q
 struct buffer {
