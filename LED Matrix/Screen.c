@@ -28,6 +28,41 @@ void resetScreen(struct screen *s){
     clearRegionOfScreen(s,0,38,0,16);
 }
 
+void linePattern(struct screen *s, int row, int width){
+    int randomInt;
+    for (uint8_t i = 0; i < 32; ++i)
+    {
+        for (uint j = 0; j < width; ++j)
+        {
+            randomInt = rand() % 7 + 1;
+            s->screen[i][row + j] = randomInt;
+        }
+    }
+}
+void trianglePattern(struct screen *s,int row,int amplitude,int width)
+{
+    uint8_t goup = 1;
+    int idx = 0;
+    int randomInt;
+    for (uint8_t i = 0; i<32;++i)
+    {
+        if (goup == 1)
+        {
+            idx--;
+        } else {
+            idx++;
+        }
+        for (int j = 0; j < width;++j){
+            randomInt = rand() % 7 + 1;
+            s->screen[i][row + idx+j] = randomInt;
+        }
+        if (idx == -amplitude)
+            goup = 0;
+        if (idx == 0)
+            goup = 1;
+    }
+}
+
 // Clears a region of the screen, noninclusive for
 // hight value
 void clearRegionOfScreen(struct screen *s, int coll,int colh, int rowl,int rowh)
@@ -48,18 +83,20 @@ void addPhrase(struct screen * s, char* phrase)
     for (int i = 0; i < end; ++i)
     {
         addLetter(s,phrase[i]);
-    }    
+    }
+    addLetter(s,' ');
+    addLetter(s,' ');
     if (strstr(phrase,"RED") != NULL)
     {
         changeColor(s,1);
     }
     if (strstr(phrase,"YELLOW") != NULL)
     {
-        changeColor(s,2);
+        changeColor(s,3);
     }
     if (strstr(phrase,"GREEN") != NULL)
     {
-        changeColor(s,3);
+        changeColor(s,2);
     }
     if (strstr(phrase,"BLUE") != NULL)
     {
@@ -74,10 +111,6 @@ void addPhrase(struct screen * s, char* phrase)
         changeColor(s,6);
     }
     if (strstr(phrase,"WHITE") != NULL)
-    {
-        changeColor(s,7);
-    }
-    if (strstr(phrase,"FLASH"))
     {
         changeColor(s,7);
     }
@@ -112,16 +145,17 @@ void changeColor(struct screen *s,uint8_t ncolor)
 // updateScreen
 void updateScreen(struct screen *s)
 {
-    for (int i = 0; i < 16; ++i)
+    for (int i = 0; i < 15; ++i)
     {
         for (int j = 0; j < 32; ++j)
         {
             s->screen[j][i] = s->screenBuffer[j][i];
-            if (s->screen[j][i] != 0){
+            if (s->screen[j][i] != 0 && i > 8){
                 s->screen[j][i] = s->color;
             }
         }
     }
+    linePattern(s,6,3);
 }
 
 void addLetter(struct screen * s, char newLetter)
@@ -165,7 +199,7 @@ void placeWord(char* word,int row,int col,struct screen *s)
 // Every six advances, we should dequeue
 void advance(struct screen * s)
 {
-    if (s->advanceCounter % 7 == 0)
+    if (s->advanceCounter % 4 == 0)
     {
         // get next letter
         struct letter myletter;
@@ -178,20 +212,21 @@ void advance(struct screen * s)
         myletter = dequeue(s->bufferOfLetters);
         s->advanceCounter = 1;
         // place letter in bufferScreen
-        int row = 10;
+        int row = 9;
         int col = 32;
         placeLetter(&myletter,row,col,s);
         cleanLetter(&myletter);
     }
     // advance the screen by 1 to the left and appropriately adjust 
     
-    for (int i = 10; i < 16; ++i)
+    for (int i = 9; i < 15; ++i)
     {
-        for (int j = 0; j < 37; ++j)
+        for (int j = 0; j < 36; ++j)
         {
-            s->screenBuffer[j][i] = s->screenBuffer[j+1][i];
+            s->screenBuffer[j][i] = s->screenBuffer[j+2][i];
         }
         s->screenBuffer[37][i] = 0;
+        s->screenBuffer[36][i] = 0;
     }
     
     updateScreen(s);
@@ -223,10 +258,10 @@ struct screen* screenInit()
     resetScreen(newScreen);
     newScreen->bufferOfLetters = malloc(sizeof(struct buffer));
     buffer_init(newScreen->bufferOfLetters);
-    char word[] = "STARTING";
+    char word[] = "STARTING light blue";
     addPhrase(newScreen,word);
-   // char rec[] = "rec";
-   // placeWord(rec,0,0,newScreen);
+    char rec[] = "rec*";
+    placeWord(rec,0,0,newScreen);
     //fillBufferTest(newScreen->bufferOfLetters);
     return newScreen;
 }
@@ -242,10 +277,10 @@ int main(void)
         advance(newScreen);
         //printScreenBuffer(newScreen);
         printScreen(newScreen);
-        if (count > 30)
-        {
-            clearRegionOfScreen(newScreen,0,38,0,7);
-        }
+        //if (count > 30)
+       // {
+       //     //clearRegionOfScreen(newScreen,0,38,0,7);
+       // }
     }
     printScreenBuffer(newScreen);
 }
