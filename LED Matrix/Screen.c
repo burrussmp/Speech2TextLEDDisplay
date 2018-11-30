@@ -156,6 +156,7 @@ void updateScreen(struct screen *s)
         }
     }
     //linePattern(s,6,3);
+    //trianglePattern(s,7,2,3);
 }
 
 void addLetter(struct screen * s, char newLetter)
@@ -246,7 +247,7 @@ struct screen* screenInit()
 {
     struct screen * newScreen = malloc(sizeof(struct screen));
     newScreen->advanceCounter = 1;
-    newScreen->color = 7;
+    newScreen->color = 1;
     pthread_mutex_init(&(newScreen->enqueueMutex),NULL);
     for (int i = 0; i < 16; ++i)
     {

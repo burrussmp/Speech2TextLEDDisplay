@@ -11,14 +11,14 @@
 struct control {
   pthread_mutex_t convert_mutex;
   pthread_cond_t convert_condition;
-  int curRec;
-  int curDec;
+  //int curRec;
+  //int curDec;
   int readyToDecode;
-  char* files[2];
+  char* files;
   struct screen* newScreen;
 };
 
-static int NUM_FILES = 2;
+static int NUM_FILES = 1;
 static pthread_mutex_t refreshMut;
 
 void *screen_advance(void* param);
@@ -130,7 +130,7 @@ void *decode_audio(void* param){
                 // "-dict", MODELDIR "/en-us/dan-test.dict",
                  "-samprate", "22100",
                  "-nfft", "1024",
-                 "-ds", "2", // higher is less accurate
+                 "-ds", "1", // higher is less accurate
                  "-topn", "2", // lower less accurate
                  "-maxwpf", "5", // low means less accurate
                  "-maxhmmpf", "3000", // who knows man
@@ -156,7 +156,7 @@ void *decode_audio(void* param){
     {
       pthread_cond_wait( &(cont->convert_condition) ,&(cont->convert_mutex) );
     }
-    fh = fopen(cont->files[cont->curDec], "rb");
+    fh = fopen(cont->files, "rb");
 
     decode(cont);
 
@@ -223,11 +223,11 @@ void *record_audio(void* param){
     usleep(5000000);
     char rec[] = "rec*";
     placeWord(rec,0,0,cont->newScreen);
-    if(cont->curRec == 0){
-      system("arecord -f S16_LE -r22100 -D hw:1,0 -d 4 buffer1.raw");
-    } else {
-      system("arecord -f S16_LE -r22100 -D hw:1,0 -d 4 buffer2.raw");
-    }
+    //if(cont->curRec == 0){
+      system("arecord -f S16_LE -r22100 -D hw:1,0 -d 3 buffer1.raw");
+    //} else {
+    //  system("arecord -f S16_LE -r22100 -D hw:1,0 -d 4 buffer2.raw");
+    //}
     clearRegionOfScreen(cont->newScreen,0,16,0,5);
     //system(command); // This might not work
 
@@ -236,7 +236,6 @@ void *record_audio(void* param){
     fflush(stdout);
 
     record(cont);
-
       // send signal to wake
     pthread_cond_broadcast( &(cont->convert_condition) );
     // unlock mutex
@@ -255,14 +254,14 @@ void control_init(struct control* cont){
     int cond = pthread_cond_init(&cont->convert_condition, NULL);
 
     // Files for the double buffering
-    cont->files[0] = "buffer1.raw";
-    cont->files[1] = "buffer2.raw";
+    cont->files = "buffer1.raw";
+    //cont->files[1] = "buffer2.raw";
 
     // Index to decode from next
-    cont->curDec = 0;
+    //cont->curDec = 0;
 
     // Index to record to next
-    cont->curRec = 0;
+    //cont->curRec = 0;
 
     // Number of files ready to decode
     cont->readyToDecode = 0;
@@ -276,13 +275,13 @@ void control_init(struct control* cont){
 }
 
 void decode(struct control* cont){
-  cont->curDec++;
-  cont->curDec = (cont->curDec) % NUM_FILES;
+  //cont->curDec++;
+  //cont->curDec = (cont->curDec) % NUM_FILES;
   cont->readyToDecode--;
 }
 
 void record(struct control* cont){
-  cont->curRec++;
-  cont->curRec = (cont->curRec) % NUM_FILES;
+  //cont->curRec++;
+  //cont->curRec = (cont->curRec) % NUM_FILES;
   cont->readyToDecode++;
 }
