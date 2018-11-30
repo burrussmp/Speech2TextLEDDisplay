@@ -35,7 +35,7 @@ void linePattern(struct screen *s, int row, int width){
         for (uint j = 0; j < width; ++j)
         {
             randomInt = rand() % 7 + 1;
-            s->screen[i][row + j] = randomInt;
+            s->screen[i][row + j] = s->color;
         }
     }
 }
@@ -155,7 +155,7 @@ void updateScreen(struct screen *s)
             }
         }
     }
-    linePattern(s,6,3);
+    //linePattern(s,6,3);
 }
 
 void addLetter(struct screen * s, char newLetter)
@@ -219,7 +219,7 @@ void advance(struct screen * s)
     }
     // advance the screen by 1 to the left and appropriately adjust 
     
-    for (int i = 9; i < 15; ++i)
+    for (int i = 6; i < 15; ++i)
     {
         for (int j = 0; j < 36; ++j)
         {
@@ -246,7 +246,7 @@ struct screen* screenInit()
 {
     struct screen * newScreen = malloc(sizeof(struct screen));
     newScreen->advanceCounter = 1;
-    newScreen->color = 1;
+    newScreen->color = 7;
     pthread_mutex_init(&(newScreen->enqueueMutex),NULL);
     for (int i = 0; i < 16; ++i)
     {
@@ -258,10 +258,8 @@ struct screen* screenInit()
     resetScreen(newScreen);
     newScreen->bufferOfLetters = malloc(sizeof(struct buffer));
     buffer_init(newScreen->bufferOfLetters);
-    char word[] = "STARTING light blue";
+    char word[] = "SPEECH2TEXT";
     addPhrase(newScreen,word);
-    char rec[] = "rec*";
-    placeWord(rec,0,0,newScreen);
     //fillBufferTest(newScreen->bufferOfLetters);
     return newScreen;
 }
@@ -279,7 +277,7 @@ int main(void)
         printScreen(newScreen);
         //if (count > 30)
        // {
-       //     //clearRegionOfScreen(newScreen,0,38,0,7);
+       //     //clearRegionOfScreen(newScreen,0,38,0,5);
        // }
     }
     printScreenBuffer(newScreen);
