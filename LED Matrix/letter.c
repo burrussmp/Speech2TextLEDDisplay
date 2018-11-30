@@ -76,12 +76,12 @@ struct letter* createLetter(char l)
         break;
     case 'c':
         letter_init(newLetter,5,4);
-        newLetter->pixelMatrix[1][1] = 1;
-        newLetter->pixelMatrix[1][2] = 1;
-        newLetter->pixelMatrix[2][0] = 1;
-        newLetter->pixelMatrix[3][0] = 1;
-        newLetter->pixelMatrix[4][1] = 1;
-        newLetter->pixelMatrix[4][2] = 1;
+        newLetter->pixelMatrix[1][1] = 7;
+        newLetter->pixelMatrix[1][2] = 7;
+        newLetter->pixelMatrix[2][0] = 7;
+        newLetter->pixelMatrix[3][0] = 7;
+        newLetter->pixelMatrix[4][1] = 7;
+        newLetter->pixelMatrix[4][2] = 7;
         break;
     case 'C':
         letter_init(newLetter,6,6);
@@ -113,15 +113,15 @@ struct letter* createLetter(char l)
         break;
     case 'e':
         letter_init(newLetter,5,4);
-        newLetter->pixelMatrix[1][0] = 1;
-        newLetter->pixelMatrix[1][1] = 1;
-        newLetter->pixelMatrix[1][2] = 1;
-        newLetter->pixelMatrix[2][0] = 1;
-        newLetter->pixelMatrix[2][1] = 1;
-        newLetter->pixelMatrix[2][2] = 1;
-        newLetter->pixelMatrix[3][0] = 1;
-        newLetter->pixelMatrix[4][1] = 1;
-        newLetter->pixelMatrix[4][2] = 1;
+        newLetter->pixelMatrix[1][0] = 7;
+        newLetter->pixelMatrix[1][1] = 7;
+        newLetter->pixelMatrix[1][2] = 7;
+        newLetter->pixelMatrix[2][0] = 7;
+        newLetter->pixelMatrix[2][1] = 7;
+        newLetter->pixelMatrix[2][2] = 7;
+        newLetter->pixelMatrix[3][0] = 7;
+        newLetter->pixelMatrix[4][1] = 7;
+        newLetter->pixelMatrix[4][2] = 7;
         break;
     case 'E':
         letter_init(newLetter,6,6);
@@ -313,11 +313,11 @@ struct letter* createLetter(char l)
         break;
     case 'r':
         letter_init(newLetter,5,4);
-        newLetter->pixelMatrix[1][1] = 1;
-        newLetter->pixelMatrix[1][2] = 1;
-        newLetter->pixelMatrix[2][0] = 1;
-        newLetter->pixelMatrix[3][0] = 1;
-        newLetter->pixelMatrix[4][0] = 1;
+        newLetter->pixelMatrix[1][1] = 7;
+        newLetter->pixelMatrix[1][2] = 7;
+        newLetter->pixelMatrix[2][0] = 7;
+        newLetter->pixelMatrix[3][0] = 7;
+        newLetter->pixelMatrix[4][0] = 7;
         break;
     case 'R':
         letter_init(newLetter,6,6);
@@ -448,6 +448,36 @@ struct letter* createLetter(char l)
         break;
     case ' ':
         letter_init(newLetter,6,6);
+        break;
+    case '*':
+        letter_init(newLetter,5,4);
+        newLetter->pixelMatrix[2][1] = 1;
+        newLetter->pixelMatrix[2][2] = 1;
+        newLetter->pixelMatrix[3][1] = 1;
+        newLetter->pixelMatrix[3][2] = 1;
+        break;
+    case '+':
+        letter_init(newLetter,5,4);
+        newLetter->pixelMatrix[0][2] = 2;
+        newLetter->pixelMatrix[1][0] = 2;
+        newLetter->pixelMatrix[1][3] = 2;
+        newLetter->pixelMatrix[2][3] = 2;
+        newLetter->pixelMatrix[3][0] = 2;
+        newLetter->pixelMatrix[4][2] = 2;
+        break;
+    case '2':
+        letter_init(newLetter,6,6);
+        newLetter->pixelMatrix[1][1] = 1;
+        newLetter->pixelMatrix[1][2] = 1;
+        newLetter->pixelMatrix[1][3] = 1;
+        newLetter->pixelMatrix[2][4] = 1;
+        newLetter->pixelMatrix[3][2] = 1;
+        newLetter->pixelMatrix[3][3] = 1;
+        newLetter->pixelMatrix[4][1] = 1;
+        newLetter->pixelMatrix[5][1] = 1;
+        newLetter->pixelMatrix[5][2] = 1;
+        newLetter->pixelMatrix[5][3] = 1;
+        newLetter->pixelMatrix[5][4] = 1;
         break;
   }
    return newLetter;

@@ -206,7 +206,9 @@ void ledMatrix_refresh(struct screen * s)
         ledMatrix_latch();
         lseek(fileDesc_oe, 0, SEEK_SET);
         write(fileDesc_oe, "0", 1); 
-        wait_next_activation();
+        struct timespec reqDelay = {DELAY_IN_SEC, DELAY_IN_US}; // sleep for delay
+
+        nanosleep(&reqDelay, (struct timespec *) NULL);
     }
     return;
 }
@@ -228,27 +230,19 @@ void wait_next_activation()
 
 
 
-/*// Thread function for LED screen
-// accepts a thread to a controller struct
-void start()
-{
-
-}
+// Thread function for LED screen
+/*
 int main()
 { 
     struct screen* newScreen;
     newScreen = screenInit();
-
-    // Reset the screen
-    memset(newScreen ->screen, 0, sizeof(newScreen->screen));
-
     // Setup pins
     ledMatrix_setupPins();
 
     printf("Starting the program\n");
     while(1){
         advance(newScreen);
-        for (int i = 0; i < 10; ++i)
+        for (int i = 0; i < 5; ++i)
             ledMatrix_refresh(newScreen);
     }
 

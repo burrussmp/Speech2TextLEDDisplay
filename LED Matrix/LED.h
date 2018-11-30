@@ -33,7 +33,7 @@
 #define S_IWRITE "S_IWUSR"
 
 /* TIMING */
-#define DELAY_IN_US 2
+#define DELAY_IN_US 10
 #define DELAY_IN_SEC 0
 
 /* FILES HANDLER */
@@ -52,7 +52,7 @@ static int fileDesc_c;
 
 // timer static variables
 static struct timespec wait; // declares timespec structs
-static uint64_t period_ns = 200000000; // 0.0002 s
+static uint64_t period_ns = 2000; // 0.0002 s
 
 /**
  * exportAndOut

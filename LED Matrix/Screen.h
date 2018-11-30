@@ -19,15 +19,18 @@ void printScreen(struct screen * s);
 void changeColor(struct screen *s,uint8_t ncolor);
 void updateScreen(struct screen * s);
 void addLetter(struct screen *s, char newLetter);
-void addPhrase(struct screen * s, char* phrase);
 void placeLetter(struct letter* l, int col, int row,struct screen * s);
+void fillBufferTest(struct buffer * mybuf);
+void resetScreen(struct screen *s);
+void freeScreen(struct screen * myscreen);
+void linePattern(struct screen * s, int row,int width);
+struct screen * screenInit();
+void addPhrase(struct screen * s, char* phrase);
 void placeWord(char* word,int col,int row,struct screen *s);
 void advance(struct screen * s);
-void fillBufferTest(struct buffer * mybuf);
-struct screen * screenInit();
-void freeScreen(struct screen * myscreen);
-void resetScreen(struct screen *s);
 void clearRegionOfScreen(struct screen *s, int coll,int colh, int rowl,int rowh);
+
+
 
 // Helper function to make string lowercase
 // Must declare string Y as 
