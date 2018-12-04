@@ -17,4 +17,4 @@ Libraries
 
 If you have any questions or comments reach out to either of the authors
 
-![Hello LED Display](https://github.com/burrussmp/Speech2TextLEDDisplay/edit/master/LED%20Matrix/helloPhoto.jpg)
+![Hello LED Display](https://github.com/burrussmp/Speech2TextLEDDisplay/blob/master/LED%20Matrix/helloPhoto.jpg)
