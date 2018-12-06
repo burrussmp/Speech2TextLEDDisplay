@@ -118,8 +118,3 @@ void ledMatrix_setColourBottom(int colour);
  *  Fill the LED Matrix with the respective pixel colour
  */
 void ledMatrix_refresh(struct screen * s);
-
-// timer functions
-void start_periodic_timer();
-void wait_next_activation();
-void timespec_add_ns(struct timespec *t, uint64_t delta);
