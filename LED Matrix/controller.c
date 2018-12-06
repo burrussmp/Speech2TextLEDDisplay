@@ -8,17 +8,24 @@
 #include "LED.h"
 
 
+/*
+* Control structur encapsulating the synch variables
+* Holds the readyToDecode, files, and screen buffer
+*/
 struct control {
   pthread_mutex_t convert_mutex;
   pthread_cond_t convert_condition;
-  //int curRec;
-  //int curDec;
+
+  // Number of files ready to decode
   int readyToDecode;
   char* files;
   struct screen* newScreen;
 };
 
+// Current number of files to write
 static int NUM_FILES = 1;
+
+// Refresh mutex to guard the LED matrix
 static pthread_mutex_t refreshMut;
 
 void *screen_advance(void* param);
@@ -27,8 +34,6 @@ void *decode_audio(void* data);
 void* refresh(void* data);
 
 void control_init(struct control* cont);
-void decode(struct control* cont);
-void record(struct control* cont);
 
 int main(int argc, char *argv[])
 {
@@ -40,6 +45,7 @@ int main(int argc, char *argv[])
     struct control* cont = malloc(sizeof(struct control));
     control_init(cont);
 
+    // Setup lED pins to display
     ledMatrix_setupPins();
 
     int mut = pthread_mutex_init(&refreshMut, NULL);
@@ -66,12 +72,14 @@ int main(int argc, char *argv[])
       return 1;
     }
 
+    // Refresh thread
     ret4 = pthread_create(&thread4, NULL, refresh, (void*) cont);
     if (ret4){
      printf("Error opening thread2");
      return 1;
     }
 
+    // Join threads
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);
     pthread_join(thread3, NULL);
@@ -81,34 +89,58 @@ int main(int argc, char *argv[])
 
 }
 
+/*
+* Refreshes the screen so the most updated version displays
+*/
 void *refresh(void* data){
   struct control* cont = (struct control*)data;
 
   while(1){
+    // Lock screen mutex
     pthread_mutex_lock(&refreshMut);
+
+    // Refresh the screen to achieve display the updated screen
     ledMatrix_refresh(cont->newScreen);
+
+    // Unlock screen mutex
     pthread_mutex_unlock(&refreshMut);
   }
 }
 
+/*
+* Advances and updates the screen every .1 seconds
+*/ 
 void *screen_advance(void* param){
   struct control* cont  = (struct control*) param;
 
   while(1){
-      usleep(100000);
-      advance(cont->newScreen);
-      pthread_mutex_lock(&refreshMut);
-      updateScreen(cont->newScreen);
-      pthread_mutex_unlock(&refreshMut);
 
-      //changeColor(newScreen,1+newScreen->color);
-      // for (int i = 0; i < 4; ++i)
-      //   ledMatrix_refresh(cont->newScreen);
+      // Sleep to give other threads a chance to run
+      usleep(100000);
+
+      // Advance the LED text across the screen
+      advance(cont->newScreen);
+
+      // Lock screen mutex
+      pthread_mutex_lock(&refreshMut);
+
+      // Display the advanced pattern on the screen
+      updateScreen(cont->newScreen);
+
+      // Unlock screen mutex
+      pthread_mutex_unlock(&refreshMut);
   }
 
   return (void*)1;
 }
 
+
+/* 
+* This thread decodes the audio data within the file
+* Uses the pocketsphinx library to perform the decoding
+* Intializes the speech recognizer with the proper settings
+* Synchronizes with the recording thread
+*/
 void *decode_audio(void* param){
 
   struct control* cont  = (struct control*) param;
@@ -121,6 +153,8 @@ void *decode_audio(void* param){
     int rv;
     int32 score;
 
+  // Initialize the PocketSphinx library configurations
+  // With the correct arguments: sample rate, dict., lang. model, etc.  
   config = cmd_ln_init(NULL, ps_args(), TRUE,
              "-hmm", MODELDIR "/en-us/en-us",
              "-lm", MODELDIR "/en-us/en-us2.lm.bin",
@@ -137,13 +171,17 @@ void *decode_audio(void* param){
                  "-pl_window", "10", // Greater mean less accurate
 
              NULL);
+
+  // If configuration is null (fail) return
   if (config == NULL) {
     fprintf(stderr, "Failed to create config object, see log for details\n");
     return (void*)-1;
   }
 
+  // Initialize the pocketsphinx recognizer using configurations
   ps = ps_init(config);
 
+  // If recognizer init failed, return
   if (ps == NULL) {
     fprintf(stderr, "Failed to create recognizer, see log for details\n");
     return (void*)-1;
@@ -152,34 +190,44 @@ void *decode_audio(void* param){
   while (1) {
     pthread_mutex_lock( &(cont->convert_mutex) ); // lock condition
 
+    // Waits while no file is ready to decode (ready for double buffer if another processor was introduced)
     while(cont->readyToDecode <= 0)
     {
       pthread_cond_wait( &(cont->convert_condition) ,&(cont->convert_mutex) );
     }
+
+    // Open specified file
     fh = fopen(cont->files, "rb");
 
-    decode(cont);
-
     if (fh == NULL) {
-      fprintf(stderr, "Unable to open input file goforward.raw\n");
+      fprintf(stderr, "Unable to open input file buffer1.raw\n");
       return (void*)-1;
     }
 
+    // Initialize buffer with decoding symbol
     char rec[] = "+";
+
+    // Place decoding symbol on the screen 
     placeWord(rec,0,24,cont->newScreen);
 
     rv = ps_start_utt(ps);
 
+    // Until end of file, read from file and process 512 2-byte elements each iteration
     while (!feof(fh)) {
       size_t nsamp;
       nsamp = fread(buf, 2, 512, fh);
       rv = ps_process_raw(ps, buf, nsamp, FALSE, FALSE);
     }
-    // char rec[] = "+";
-    // placeWord(rec,0,24,cont->newScreen);
+
     rv = ps_end_utt(ps);
+
+    // Receive hypothesis string 
     hyp = ps_get_hyp(ps, &score);
+
+    // Clear screen region for new character to be added
     clearRegionOfScreen(cont->newScreen,17,38,0,5);
+
+    // Interpret the hypothesis, adding the phrase if not null
     if (hyp == NULL){
       printf("NOTHING SPOKEN, RECEIVED NULL\n");
     } else {
@@ -194,6 +242,9 @@ void *decode_audio(void* param){
 
     fclose(fh);
 
+    // Decode the file stream
+    cont->readyToDecode--;
+
     // send signal to wake
     pthread_cond_broadcast( &(cont->convert_condition) );
     // unlock mutex
@@ -205,6 +256,16 @@ void *decode_audio(void* param){
   return (void*)1;
 }
 
+/*
+* This thread records to an audio file when readyToDecode is less than NUM_FILES
+* ReadyToDecode signifies recorded audio to decode and NUM_FILES, for the time being, is 1
+*
+* This function alternates with decode_audio in order to capture and process the audio signals
+* Calls ALSA library function from the command line
+* Specs:
+* - Sample Rate: 22100 kHz; USB device: hw:1,0; Duration: 3 seconds; Destination: buffer1.raw
+  - Format: S16_LE
+*/
 void *record_audio(void* param){
 
   struct control* cont  = (struct control*) param;
@@ -219,15 +280,17 @@ void *record_audio(void* param){
 
     //char* command;
 
-    //sprintf(command, "arecord -f S16_LE -r22100 -D hw:1,0 -d 2 %s", cont->files[cont->curRec]);
+    // Sleep 5 seconds to give the user time to read text and then speak 
     usleep(5000000);
+
+    // Place the recording symbol
     char rec[] = "rec*";
     placeWord(rec,0,0,cont->newScreen);
-    //if(cont->curRec == 0){
-      system("arecord -f S16_LE -r22100 -D hw:1,0 -d 3 buffer1.raw");
-    //} else {
-    //  system("arecord -f S16_LE -r22100 -D hw:1,0 -d 4 buffer2.raw");
-    //}
+
+    // Call command function to record
+    system("arecord -f S16_LE -r22100 -D hw:1,0 -d 3 buffer1.raw");
+
+    // Clear recording symbol
     clearRegionOfScreen(cont->newScreen,0,16,0,5);
     //system(command); // This might not work
 
@@ -235,7 +298,9 @@ void *record_audio(void* param){
 
     fflush(stdout);
 
-    record(cont);
+    // Increment ReadyToDecode
+    cont->readyToDecode++;
+
       // send signal to wake
     pthread_cond_broadcast( &(cont->convert_condition) );
     // unlock mutex
@@ -247,41 +312,22 @@ void *record_audio(void* param){
 }
 
 
+/*
+* Initialize the control struct
+* Contains synchronization variables, bufferfile name, screen to initialize
+*/
 void control_init(struct control* cont){
 
     // Control mutex and condition variable for synch
     int mut = pthread_mutex_init(&cont->convert_mutex, NULL);
     int cond = pthread_cond_init(&cont->convert_condition, NULL);
 
-    // Files for the double buffering
+    // Files
     cont->files = "buffer1.raw";
-    //cont->files[1] = "buffer2.raw";
-
-    // Index to decode from next
-    //cont->curDec = 0;
-
-    // Index to record to next
-    //cont->curRec = 0;
 
     // Number of files ready to decode
     cont->readyToDecode = 0;
 
     // Initialize the screen for the LED
     cont->newScreen = screenInit();
-
-    // Reset the screen
-    //memset(cont->newScreen ->screen, 0, sizeof(cont->newScreen->screen));
-
-}
-
-void decode(struct control* cont){
-  //cont->curDec++;
-  //cont->curDec = (cont->curDec) % NUM_FILES;
-  cont->readyToDecode--;
-}
-
-void record(struct control* cont){
-  //cont->curRec++;
-  //cont->curRec = (cont->curRec) % NUM_FILES;
-  cont->readyToDecode++;
 }
