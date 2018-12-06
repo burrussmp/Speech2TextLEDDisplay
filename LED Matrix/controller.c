@@ -31,7 +31,7 @@ static pthread_mutex_t refreshMut;
 void *screen_advance(void* param);
 void *record_audio(void* data);
 void *decode_audio(void* data);
-void* refresh(void* data);
+void* screen_refresh(void* data);
 
 void control_init(struct control* cont);
 
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
     }
 
     // Refresh thread
-    ret4 = pthread_create(&thread4, NULL, refresh, (void*) cont);
+    ret4 = pthread_create(&thread4, NULL, screen_refresh, (void*) cont);
     if (ret4){
      printf("Error opening thread2");
      return 1;
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 /*
 * Refreshes the screen so the most updated version displays
 */
-void *refresh(void* data){
+void *screen_refresh(void* data){
   struct control* cont = (struct control*)data;
 
   while(1){
