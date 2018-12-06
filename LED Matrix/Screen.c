@@ -235,7 +235,7 @@ struct screen* screenInit()
 {
     struct screen * newScreen = malloc(sizeof(struct screen));
     newScreen->advanceCounter = 1;
-    newScreen->color = 7;
+    newScreen->color = 1;
     pthread_mutex_init(&(newScreen->enqueueMutex),NULL);
     for (int i = 0; i < 16; ++i)
     {

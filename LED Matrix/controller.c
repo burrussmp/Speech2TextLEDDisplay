@@ -11,18 +11,20 @@
 struct control {
   pthread_mutex_t convert_mutex;
   pthread_cond_t convert_condition;
-  int curRec;
-  int curDec;
+  //int curRec;
+  //int curDec;
   int readyToDecode;
-  char* files[2];
+  char* files;
   struct screen* newScreen;
 };
 
-static int NUM_FILES = 2;
+static int NUM_FILES = 1;
+static pthread_mutex_t refreshMut;
 
 void *screen_advance(void* param);
 void *record_audio(void* data);
 void *decode_audio(void* data);
+void* refresh(void* data);
 
 void control_init(struct control* cont);
 void decode(struct control* cont);
@@ -30,8 +32,8 @@ void record(struct control* cont);
 
 int main(int argc, char *argv[])
 {
-    pthread_t thread1, thread2, thread3;
-    int ret1, ret2, ret3;
+    pthread_t thread1, thread2, thread3, thread4;
+    int ret1, ret2, ret3, ret4;
 
     
     // Setup the control struct
@@ -39,6 +41,8 @@ int main(int argc, char *argv[])
     control_init(cont);
 
     ledMatrix_setupPins();
+
+    int mut = pthread_mutex_init(&refreshMut, NULL);
 
     // Recording thread
     
@@ -62,22 +66,44 @@ int main(int argc, char *argv[])
       return 1;
     }
 
+    ret4 = pthread_create(&thread4, NULL, refresh, (void*) cont);
+    if (ret4){
+     printf("Error opening thread2");
+     return 1;
+    }
+
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);
     pthread_join(thread3, NULL);
+    pthread_join(thread4, NULL);
     
     return 1;
 
+}
+
+void *refresh(void* data){
+  struct control* cont = (struct control*)data;
+
+  while(1){
+    pthread_mutex_lock(&refreshMut);
+    ledMatrix_refresh(cont->newScreen);
+    pthread_mutex_unlock(&refreshMut);
+  }
 }
 
 void *screen_advance(void* param){
   struct control* cont  = (struct control*) param;
 
   while(1){
+      usleep(100000);
       advance(cont->newScreen);
+      pthread_mutex_lock(&refreshMut);
+      updateScreen(cont->newScreen);
+      pthread_mutex_unlock(&refreshMut);
+
       //changeColor(newScreen,1+newScreen->color);
-      for (int i = 0; i < 4; ++i)
-        ledMatrix_refresh(cont->newScreen);
+      // for (int i = 0; i < 4; ++i)
+      //   ledMatrix_refresh(cont->newScreen);
   }
 
   return (void*)1;
@@ -97,14 +123,14 @@ void *decode_audio(void* param){
 
   config = cmd_ln_init(NULL, ps_args(), TRUE,
              "-hmm", MODELDIR "/en-us/en-us",
-             "-lm", MODELDIR "/en-us/en-us.lm.bin",
+             "-lm", MODELDIR "/en-us/en-us2.lm.bin",
              //"-lm", MODELDIR "/en-us/newlm.lm",
-             "-dict", MODELDIR "/en-us/cmudict-en-us.dict",
+             "-dict", MODELDIR "/en-us/cmudict-en-us2.dict",
              //"-dict", MODELDIR "/en-us/newdict.dict",
                 // "-dict", MODELDIR "/en-us/dan-test.dict",
                  "-samprate", "22100",
                  "-nfft", "1024",
-                 "-ds", "2", // higher is less accurate
+                 "-ds", "1", // higher is less accurate
                  "-topn", "2", // lower less accurate
                  "-maxwpf", "5", // low means less accurate
                  "-maxhmmpf", "3000", // who knows man
@@ -130,7 +156,7 @@ void *decode_audio(void* param){
     {
       pthread_cond_wait( &(cont->convert_condition) ,&(cont->convert_mutex) );
     }
-    fh = fopen(cont->files[cont->curDec], "rb");
+    fh = fopen(cont->files, "rb");
 
     decode(cont);
 
@@ -138,6 +164,10 @@ void *decode_audio(void* param){
       fprintf(stderr, "Unable to open input file goforward.raw\n");
       return (void*)-1;
     }
+
+    char rec[] = "+";
+    placeWord(rec,0,24,cont->newScreen);
+
     rv = ps_start_utt(ps);
 
     while (!feof(fh)) {
@@ -145,11 +175,11 @@ void *decode_audio(void* param){
       nsamp = fread(buf, 2, 512, fh);
       rv = ps_process_raw(ps, buf, nsamp, FALSE, FALSE);
     }
-    //char rec[] = "+";
-    //placeWord(rec,0,24,cont->newScreen);
+    // char rec[] = "+";
+    // placeWord(rec,0,24,cont->newScreen);
     rv = ps_end_utt(ps);
     hyp = ps_get_hyp(ps, &score);
-    //clearRegionOfScreen(cont->newScreen,17,38,0,5);
+    clearRegionOfScreen(cont->newScreen,17,38,0,5);
     if (hyp == NULL){
       printf("NOTHING SPOKEN, RECEIVED NULL\n");
     } else {
@@ -190,13 +220,14 @@ void *record_audio(void* param){
     //char* command;
 
     //sprintf(command, "arecord -f S16_LE -r22100 -D hw:1,0 -d 2 %s", cont->files[cont->curRec]);
+    usleep(5000000);
     char rec[] = "rec*";
     placeWord(rec,0,0,cont->newScreen);
-    if(cont->curRec == 0){
-      system("arecord -f S16_LE -r22100 -D hw:1,0 -d 2 buffer1.raw");
-    } else {
-      system("arecord -f S16_LE -r22100 -D hw:1,0 -d 2 buffer2.raw");
-    }
+    //if(cont->curRec == 0){
+      system("arecord -f S16_LE -r22100 -D hw:1,0 -d 3 buffer1.raw");
+    //} else {
+    //  system("arecord -f S16_LE -r22100 -D hw:1,0 -d 4 buffer2.raw");
+    //}
     clearRegionOfScreen(cont->newScreen,0,16,0,5);
     //system(command); // This might not work
 
@@ -205,7 +236,6 @@ void *record_audio(void* param){
     fflush(stdout);
 
     record(cont);
-
       // send signal to wake
     pthread_cond_broadcast( &(cont->convert_condition) );
     // unlock mutex
@@ -224,14 +254,14 @@ void control_init(struct control* cont){
     int cond = pthread_cond_init(&cont->convert_condition, NULL);
 
     // Files for the double buffering
-    cont->files[0] = "buffer1.raw";
-    cont->files[1] = "buffer2.raw";
+    cont->files = "buffer1.raw";
+    //cont->files[1] = "buffer2.raw";
 
     // Index to decode from next
-    cont->curDec = 0;
+    //cont->curDec = 0;
 
     // Index to record to next
-    cont->curRec = 0;
+    //cont->curRec = 0;
 
     // Number of files ready to decode
     cont->readyToDecode = 0;
@@ -245,13 +275,13 @@ void control_init(struct control* cont){
 }
 
 void decode(struct control* cont){
-  cont->curDec++;
-  cont->curDec = (cont->curDec) % NUM_FILES;
+  //cont->curDec++;
+  //cont->curDec = (cont->curDec) % NUM_FILES;
   cont->readyToDecode--;
 }
 
 void record(struct control* cont){
-  cont->curRec++;
-  cont->curRec = (cont->curRec) % NUM_FILES;
+  //cont->curRec++;
+  //cont->curRec = (cont->curRec) % NUM_FILES;
   cont->readyToDecode++;
 }
